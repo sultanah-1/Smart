@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>رفي الذكي - Smart Shelf</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #1c2e24; /* الأخضر الزيتي الداكن */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      touch-action: none;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .ui-header {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+      color: #f4f4f0;
+      background: rgba(28, 46, 36, 0.85);
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: 1px solid #c5a059;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+    .ui-header h1 {
+      font-size: 20px;
+      color: #c5a059;
+      margin-bottom: 4px;
+    }
+    .ui-header p {
+      font-size: 13px;
+      color: #e0e0dc;
+    }
+    .info-card {
+      position: absolute;
+      bottom: 25px;
+      right: 20px;
+      left: 20px;
+      max-width: 380px;
+      margin: 0 auto;
+      z-index: 10;
+      background: rgba(244, 244, 240, 0.95);
+      color: #1c2e24;
+      padding: 16px;
+      border-radius: 14px;
+      border-right: 5px solid #c5a059;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+      pointer-events: none;
+    }
+    .info-card h3 {
+      font-size: 16px;
+      color: #1c2e24;
+      margin-bottom: 6px;
+    }
+    .info-card p {
+      font-size: 13px;
+      color: #4a5d52;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+  <div class="ui-header">
+    <h1>رفي الذكي</h1>
+    <p>وحدة العرض والتحكم التفاعلية</p>
+  </div>
+
+  <div class="info-card" id="infoCard">
+    <h3 id="cardTitle">اضغطي على أي منتج</h3>
+    <p id="cardDesc">حركي الرف باصبعك للاطلاع عليه، واضغطي على المنتجات لعرض التفاصيل.</p>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <script>
+    window.onload = function() {
+      const container = document.getElementById('canvas-container');
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1c2e24);
+
+      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // الإضاءة
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xfff8e7, 1.2);
+      dirLight.position.set(5, 12, 8);
+      scene.add(dirLight);
+
+      const rootGroup = new THREE.Group();
+      scene.add(rootGroup);
+
+      // خامة اللون الذهبي/النحاسي
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.85, roughness: 0.2 });
+
+      // 1. جسم الرف الذكي الأفقي
+      const shelfBodyGeo = new THREE.BoxGeometry(6.6, 0.4, 4.2);
+      const shelfBodyMat = new THREE.MeshStandardMaterial({ color: 0x24382c, roughness: 0.35 });
+      const shelfBody = new THREE.Mesh(shelfBodyGeo, shelfBodyMat);
+      shelfBody.position.y = -0.2;
+      rootGroup.add(shelfBody);
+
+      // إطار نحاسي أنيق
+      const edgeGeo = new THREE.BoxGeometry(6.7, 0.1, 0.12);
+      const edgeFront = new THREE.Mesh(edgeGeo, goldMat);
+      edgeFront.position.set(0, 0, 2.1);
+      rootGroup.add(edgeFront);
+
+      const edgeBack = edgeFront.clone();
+      edgeBack.position.z = -2.1;
+      rootGroup.add(edgeBack);
+
+      // شاشة رقمية ومؤشرات ضوئية
+      const screenGeo = new THREE.BoxGeometry(2.0, 0.04, 0.6);
+      const screenMat = new THREE.MeshBasicMaterial({ color: 0x15231b });
+      const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+      screenMesh.position.set(0, 0.02, 1.5);
+      rootGroup.add(screenMesh);
+
+      const ledGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16);
+      const ledGreen = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
+      ledGreen.position.set(-1.4, 0.02, 1.5);
+      rootGroup.add(ledGreen);
+
+      const ledRed = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+      ledRed.position.set(1.4, 0.02, 1.5);
+      rootGroup.add(ledRed);
+
+      const items = [];
+
+      // 2. تصميم علب واشكال المنتجات بشكل واقعي ومختلف
+      
+      // أ) علبة كريم (عريضة ومنخفضة مع غطاء)
+      function buildCreamJar(pos, name, desc) {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.4, 32), new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.3 }));
+        base.position.y = 0.2;
+        group.add(base);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.47, 0.15, 32), goldMat);
+        cap.position.y = 0.475;
+        group.add(cap);
+        group.position.set(pos.x, 0, pos.z);
+        group.userData = { name, desc };
+        rootGroup.add(group);
+        items.push(base);
+      }
+
+      // ب) زجاجة عطر (مربعة بزجاج شفاف وبخاخ)
+      function buildPerfumeBottle(pos, name, desc) {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), new THREE.MeshStandardMaterial({ color: 0xd4af37, transparent: true, opacity: 0.8, roughness: 0.1 }));
+        body.position.y = 0.4;
+        group.add(body);
+        const spray = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.25, 16), goldMat);
+        spray.position.y = 0.925;
+        group.add(spray);
+        group.position.set(pos.x, 0, pos.z);
+        group.userData = { name, desc };
+        rootGroup.add(group);
+        items.push(body);
+      }
+
+      // ج) سيروم (طويلة مع غطاء قطارة)
+      function buildSerumBottle(pos, name, desc) {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.9, 32), new THREE.MeshStandardMaterial({ color: 0xe6c280, roughness: 0.2, transparent: true, opacity: 0.85 }));
+        body.position.y = 0.45;
+        group.add(body);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.3, 32), new THREE.MeshStandardMaterial({ color: 0x1c2e24 }));
+        cap.position.y = 1.05;
+        group.add(cap);
+        const dropper = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+        dropper.position.y = 1.25;
+        group.add(dropper);
+        group.position.set(pos.x, 0, pos.z);
+        group.userData = { name, desc };
+        rootGroup.add(group);
+        items.push(body);
+      }
+
+      // د) روج / أحمر شفاه (عبوة مربعة مع روج ظاهر)
+      function buildLipstick(pos, name, desc) {
+        const group = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 0.35), goldMat);
+        base.position.y = 0.25;
+        group.add(base);
+        const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 16), goldMat);
+        inner.position.y = 0.6;
+        group.add(inner);
+        const bullet = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x9e2a2b, roughness: 0.4 }));
+        bullet.position.y = 0.75;
+        bullet.rotation.z = -0.1;
+        group.add(bullet);
+        group.position.set(pos.x, 0, pos.z);
+        group.userData = { name, desc };
+        rootGroup.add(group);
+        items.push(base);
+      }
+
+      // هـ) علبة قطن (عبوة أسطوانية شفافة)
+      function buildCottonJar(pos, name, desc) {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.6, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 }));
+        body.position.y = 0.3;
+        group.add(body);
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 32), goldMat);
+        cap.position.y = 0.65;
+        group.add(cap);
+        group.position.set(pos.x, 0, pos.z);
+        group.userData = { name, desc };
+        rootGroup.add(group);
+        items.push(body);
+      }
+
+      // توزيع المنتجات بالأشكال الجديدة
+      buildCreamJar({x: -1.8, z: -0.7}, "كريم ترطيب", "نسبة الاستهلاك: 75%\nحالة المخزون: متوفر");
+      buildPerfumeBottle({x: 0.0, z: -0.7}, "عطر فاخر", "نسبة الاستهلاك: 40%\nحالة المخزون: متوسط");
+      buildSerumBottle({x: 1.8, z: -0.7}, "سيروم عناية", "نسبة الاستهلاك: 90%\nحالة المخزون: ممتاز");
+
+      buildLipstick({x: -1.8, z: 0.6}, "روج / مكياج", "نسبة الاستهلاك: 20%\nحالة المخزون: تنبيه لإعادة الطلب");
+      buildSerumBottle({x: 0.0, z: 0.6}, "زيت معطر", "نسبة الاستهلاك: 60%\nحالة المخزون: متوفر");
+      buildCottonJar({x: 1.8, z: 0.6}, "قطن عناية", "نسبة الاستهلاك: 85%\nحالة المخزون: متوفر");
+
+      // 3. نظام التحكم بالتدوير والتحريك المباشر باللمس
+      let isDragging = false;
+      let previousTouchX = 0;
+      let previousTouchY = 0;
+      let rotationX = 0.6;
+      let rotationY = 0;
+
+      function updateCameraPosition() {
+        const radius = 8.0;
+        camera.position.x = radius * Math.sin(rotationY) * Math.cos(rotationX);
+        camera.position.y = radius * Math.sin(rotationX);
+        camera.position.z = radius * Math.cos(rotationY) * Math.cos(rotationX);
+        camera.lookAt(0, 0, 0);
+      }
+      updateCameraPosition();
+
+      function onStart(e) {
+        isDragging = true;
+        const pointer = e.touches ? e.touches[0] : e;
+        previousTouchX = pointer.clientX;
+        previousTouchY = pointer.clientY;
+      }
+
+      function onMove(e) {
+        if (!isDragging) return;
+        const pointer = e.touches ? e.touches[0] : e;
+        const deltaX = pointer.clientX - previousTouchX;
+        const deltaY = pointer.clientY - previousTouchY;
+
+        rotationY -= deltaX * 0.008;
+        rotationX += deltaY * 0.008;
+
+        // تحديد زوايا الدوران لعدم الخروج عن المنظر
+        rotationX = Math.max(0.1, Math.min(Math.PI / 2.2, rotationX));
+
+        previousTouchX = pointer.clientX;
+        previousTouchY = pointer.clientY;
+        updateCameraPosition();
+      }
+
+      function onEnd() {
+        isDragging = false;
+      }
+
+      window.addEventListener('mousedown', onStart);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd);
+
+      window.addEventListener('touchstart', onStart, { passive: false });
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onEnd);
+
+      // النقر لاختيار المنتج
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      function onClick(e) {
+        const pointer = e.changedTouches ? e.changedTouches[0] : e;
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((pointer.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((pointer.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(items);
+
+        if (intersects.length > 0) {
+          const itemData = intersects[0].parent.userData;
+          document.getElementById('cardTitle').innerText = itemData.name;
+          document.getElementById('cardDesc').innerText = itemData.desc;
+        }
+      }
+
+      window.addEventListener('click', onClick);
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+    };
+  </script>
+</body>
+</html>
