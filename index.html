@@ -1,340 +1,267 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>رفي الذكي - Smart Shelf</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    body {
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background-color: #1c2e24; /* الأخضر الزيتي الداكن */
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      touch-action: none;
-    }
-    #canvas-container {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-    }
-    .ui-header {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 10;
-      color: #f4f4f0;
-      background: rgba(28, 46, 36, 0.85);
-      padding: 12px 24px;
-      border-radius: 12px;
-      border: 1px solid #c5a059;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      pointer-events: none;
-    }
-    .ui-header h1 {
-      font-size: 20px;
-      color: #c5a059;
-      margin-bottom: 4px;
-    }
-    .ui-header p {
-      font-size: 13px;
-      color: #e0e0dc;
-    }
-    .info-card {
-      position: absolute;
-      bottom: 25px;
-      right: 20px;
-      left: 20px;
-      max-width: 380px;
-      margin: 0 auto;
-      z-index: 10;
-      background: rgba(244, 244, 240, 0.95);
-      color: #1c2e24;
-      padding: 16px;
-      border-radius: 14px;
-      border-right: 5px solid #c5a059;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
-      pointer-events: none;
-    }
-    .info-card h3 {
-      font-size: 16px;
-      color: #1c2e24;
-      margin-bottom: 6px;
-    }
-    .info-card p {
-      font-size: 13px;
-      color: #4a5d52;
-      line-height: 1.4;
-      white-space: pre-line;
-    }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رفي الذكي 3D - Smart Shelf Unit</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #eae6df;
+            color: #2c3238;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        header h1 {
+            color: #1e242b;
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        header p {
+            color: #555e67;
+            font-size: 0.95rem;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 850px;
+            height: 640px;
+            background: radial-gradient(circle at center, #f4f1ea 0%, #dcd6cc 100%);
+            border-radius: 28px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            border: 2px solid #b8b0a2;
+            overflow: hidden;
+        }
+        #webgl-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .hint-badge {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(42, 46, 51, 0.9);
+            padding: 8px 22px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            color: #ffffff;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-  <div class="ui-header">
-    <h1>رفي الذكي</h1>
-    <p>وحدة العرض والتحكم التفاعلية</p>
-  </div>
+    <header>
+        <h1>نظام رفي الذكي (Smart Shelf Unit)</h1>
+        <p>المؤسسة العامة للتدريب التقني والمهني - الكلية التقنية الرقمية للبنات بالرياض</p>
+    </header>
 
-  <div class="info-card" id="infoCard">
-    <h3 id="cardTitle">اضغطي على أي منتج</h3>
-    <p id="cardDesc">حركي الرف باصبعك للاطلاع عليه، واضغطي على المنتجات لعرض التفاصيل.</p>
-  </div>
+    <div class="canvas-container">
+        <canvas id="webgl-canvas"></canvas>
+        <div class="hint-badge">🔄 اسحبي بأصبعك لتدوير الرف الذكي 3D بحرية</div>
+    </div>
 
-  <div id="canvas-container"></div>
+    <script>
+        const container = document.querySelector('.canvas-container');
+        const canvas = document.getElementById('webgl-canvas');
 
-  <script>
-    window.onload = function() {
-      const container = document.getElementById('canvas-container');
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x1c2e24);
+        const scene = new THREE.Scene();
 
-      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-      
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(renderer.domElement);
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 0, 10.8);
 
-      // الإضاءة
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
-      scene.add(ambientLight);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-      const dirLight = new THREE.DirectionalLight(0xfff8e7, 1.2);
-      dirLight.position.set(5, 12, 8);
-      scene.add(dirLight);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
 
-      const rootGroup = new THREE.Group();
-      scene.add(rootGroup);
+        // الإضاءة النظيفة لتوضيح الخامات
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.1);
+        scene.add(ambientLight);
 
-      // خامة اللون الذهبي/النحاسي
-      const goldMat = new THREE.MeshStandardMaterial({ color: 0xc5a059, metalness: 0.85, roughness: 0.2 });
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        dirLight.position.set(6, 12, 10);
+        scene.add(dirLight);
 
-      // 1. جسم الرف الذكي الأفقي
-      const shelfBodyGeo = new THREE.BoxGeometry(6.6, 0.4, 4.2);
-      const shelfBodyMat = new THREE.MeshStandardMaterial({ color: 0x24382c, roughness: 0.35 });
-      const shelfBody = new THREE.Mesh(shelfBodyGeo, shelfBodyMat);
-      shelfBody.position.y = -0.2;
-      rootGroup.add(shelfBody);
+        const fillLight = new THREE.DirectionalLight(0xdde3ea, 0.6);
+        fillLight.position.set(-6, -4, 4);
+        scene.add(fillLight);
 
-      // إطار نحاسي أنيق
-      const edgeGeo = new THREE.BoxGeometry(6.7, 0.1, 0.12);
-      const edgeFront = new THREE.Mesh(edgeGeo, goldMat);
-      edgeFront.position.set(0, 0, 2.1);
-      rootGroup.add(edgeFront);
+        // الخامات المطابقة للصورة تماماً
+        const outerFrameMat = new THREE.MeshStandardMaterial({ color: 0x6e757a, roughness: 0.35, metalness: 0.25 }); // رمادي الرف الخارجي
+        const innerWallMat = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.5 }); // الداخلي الغامق
+        const shelfPlateMat = new THREE.MeshStandardMaterial({ color: 0x42484e, metalness: 0.4, roughness: 0.3 }); // رف الألومنيوم الذكي
+        const sensorMetalMat = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.8, roughness: 0.2 }); // حساسات الوزن
+        const goldCapMat = new THREE.MeshStandardMaterial({ color: 0xcbb282, metalness: 0.75, roughness: 0.2 });
+        const buttonMat = new THREE.MeshStandardMaterial({ color: 0x1f2428, roughness: 0.3 });
+        const ledGreenMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
+        const ledOrangeMat = new THREE.MeshBasicMaterial({ color: 0xff9900 });
 
-      const edgeBack = edgeFront.clone();
-      edgeBack.position.z = -2.1;
-      rootGroup.add(edgeBack);
+        const shelfGroup = new THREE.Group();
 
-      // شاشة رقمية ومؤشرات ضوئية
-      const screenGeo = new THREE.BoxGeometry(2.0, 0.04, 0.6);
-      const screenMat = new THREE.MeshBasicMaterial({ color: 0x15231b });
-      const screenMesh = new THREE.Mesh(screenGeo, screenMat);
-      screenMesh.position.set(0, 0.02, 1.5);
-      rootGroup.add(screenMesh);
+        // 1. هيكل الرف الخارجي رمادي مطفي
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(5.0, 7.0, 0.2), innerWallMat);
+        backWall.position.z = -0.9;
+        shelfGroup.add(backWall);
 
-      const ledGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 16);
-      const ledGreen = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
-      ledGreen.position.set(-1.4, 0.02, 1.5);
-      rootGroup.add(ledGreen);
+        const sideLeft = new THREE.Mesh(new THREE.BoxGeometry(0.3, 7.0, 1.9), outerFrameMat);
+        sideLeft.position.x = -2.5;
+        shelfGroup.add(sideLeft);
 
-      const ledRed = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0xff3333 }));
-      ledRed.position.set(1.4, 0.02, 1.5);
-      rootGroup.add(ledRed);
+        const sideRight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 7.0, 1.9), outerFrameMat);
+        sideRight.position.x = 2.5;
+        shelfGroup.add(sideRight);
 
-      const items = [];
+        const topWall = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.3, 1.9), outerFrameMat);
+        topWall.position.y = 3.5;
+        shelfGroup.add(topWall);
 
-      // 2. تصميم علب واشكال المنتجات بشكل واقعي ومختلف
-      
-      // أ) علبة كريم (عريضة ومنخفضة مع غطاء)
-      function buildCreamJar(pos, name, desc) {
-        const group = new THREE.Group();
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.4, 32), new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.3 }));
-        base.position.y = 0.2;
-        group.add(base);
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.47, 0.47, 0.15, 32), goldMat);
-        cap.position.y = 0.475;
-        group.add(cap);
-        group.position.set(pos.x, 0, pos.z);
-        group.userData = { name, desc };
-        rootGroup.add(group);
-        items.push(base);
-      }
+        const bottomWall = new THREE.Mesh(new THREE.BoxGeometry(5.3, 0.35, 1.9), outerFrameMat);
+        bottomWall.position.y = -3.5;
+        shelfGroup.add(bottomWall);
 
-      // ب) زجاجة عطر (مربعة بزجاج شفاف وبخاخ)
-      function buildPerfumeBottle(pos, name, desc) {
-        const group = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), new THREE.MeshStandardMaterial({ color: 0xd4af37, transparent: true, opacity: 0.8, roughness: 0.1 }));
-        body.position.y = 0.4;
-        group.add(body);
-        const spray = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.25, 16), goldMat);
-        spray.position.y = 0.925;
-        group.add(spray);
-        group.position.set(pos.x, 0, pos.z);
-        group.userData = { name, desc };
-        rootGroup.add(group);
-        items.push(body);
-      }
+        // 2. لوحة الأزرار والمعالج الجانبي (Core Module / IoT Board) على الجانب الأيسر
+        const sidePanel = new THREE.Group();
+        const panelPlate = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.2, 1.2), new THREE.MeshStandardMaterial({ color: 0x52595e, metalness: 0.5 }));
+        panelPlate.position.set(-2.67, 0.5, 0);
+        sidePanel.add(panelPlate);
 
-      // ج) سيروم (طويلة مع غطاء قطارة)
-      function buildSerumBottle(pos, name, desc) {
-        const group = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.9, 32), new THREE.MeshStandardMaterial({ color: 0xe6c280, roughness: 0.2, transparent: true, opacity: 0.85 }));
-        body.position.y = 0.45;
-        group.add(body);
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.3, 32), new THREE.MeshStandardMaterial({ color: 0x1c2e24 }));
-        cap.position.y = 1.05;
-        group.add(cap);
-        const dropper = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), new THREE.MeshBasicMaterial({ color: 0x111111 }));
-        dropper.position.y = 1.25;
-        group.add(dropper);
-        group.position.set(pos.x, 0, pos.z);
-        group.userData = { name, desc };
-        rootGroup.add(group);
-        items.push(body);
-      }
+        // إضافة الأزرار والمنافذ الحقيقية على اللوحة
+        for(let i = 0; i < 3; i++) {
+            const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.12, 16), buttonMat);
+            btn.rotation.z = Math.PI / 2;
+            btn.position.set(-2.7, 1.1 - (i * 0.4), 0.2);
+            sidePanel.add(btn);
 
-      // د) روج / أحمر شفاه (عبوة مربعة مع روج ظاهر)
-      function buildLipstick(pos, name, desc) {
-        const group = new THREE.Group();
-        const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.5, 0.35), goldMat);
-        base.position.y = 0.25;
-        group.add(base);
-        const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 16), goldMat);
-        inner.position.y = 0.6;
-        group.add(inner);
-        const bullet = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x9e2a2b, roughness: 0.4 }));
-        bullet.position.y = 0.75;
-        bullet.rotation.z = -0.1;
-        group.add(bullet);
-        group.position.set(pos.x, 0, pos.z);
-        group.userData = { name, desc };
-        rootGroup.add(group);
-        items.push(base);
-      }
-
-      // هـ) علبة قطن (عبوة أسطوانية شفافة)
-      function buildCottonJar(pos, name, desc) {
-        const group = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.6, 32), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.7, roughness: 0.2 }));
-        body.position.y = 0.3;
-        group.add(body);
-        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 32), goldMat);
-        cap.position.y = 0.65;
-        group.add(cap);
-        group.position.set(pos.x, 0, pos.z);
-        group.userData = { name, desc };
-        rootGroup.add(group);
-        items.push(body);
-      }
-
-      // توزيع المنتجات بالأشكال الجديدة
-      buildCreamJar({x: -1.8, z: -0.7}, "كريم ترطيب", "نسبة الاستهلاك: 75%\nحالة المخزون: متوفر");
-      buildPerfumeBottle({x: 0.0, z: -0.7}, "عطر فاخر", "نسبة الاستهلاك: 40%\nحالة المخزون: متوسط");
-      buildSerumBottle({x: 1.8, z: -0.7}, "سيروم عناية", "نسبة الاستهلاك: 90%\nحالة المخزون: ممتاز");
-
-      buildLipstick({x: -1.8, z: 0.6}, "روج / مكياج", "نسبة الاستهلاك: 20%\nحالة المخزون: تنبيه لإعادة الطلب");
-      buildSerumBottle({x: 0.0, z: 0.6}, "زيت معطر", "نسبة الاستهلاك: 60%\nحالة المخزون: متوفر");
-      buildCottonJar({x: 1.8, z: 0.6}, "قطن عناية", "نسبة الاستهلاك: 85%\nحالة المخزون: متوفر");
-
-      // 3. نظام التحكم بالتدوير والتحريك المباشر باللمس
-      let isDragging = false;
-      let previousTouchX = 0;
-      let previousTouchY = 0;
-      let rotationX = 0.6;
-      let rotationY = 0;
-
-      function updateCameraPosition() {
-        const radius = 8.0;
-        camera.position.x = radius * Math.sin(rotationY) * Math.cos(rotationX);
-        camera.position.y = radius * Math.sin(rotationX);
-        camera.position.z = radius * Math.cos(rotationY) * Math.cos(rotationX);
-        camera.lookAt(0, 0, 0);
-      }
-      updateCameraPosition();
-
-      function onStart(e) {
-        isDragging = true;
-        const pointer = e.touches ? e.touches[0] : e;
-        previousTouchX = pointer.clientX;
-        previousTouchY = pointer.clientY;
-      }
-
-      function onMove(e) {
-        if (!isDragging) return;
-        const pointer = e.touches ? e.touches[0] : e;
-        const deltaX = pointer.clientX - previousTouchX;
-        const deltaY = pointer.clientY - previousTouchY;
-
-        rotationY -= deltaX * 0.008;
-        rotationX += deltaY * 0.008;
-
-        // تحديد زوايا الدوران لعدم الخروج عن المنظر
-        rotationX = Math.max(0.1, Math.min(Math.PI / 2.2, rotationX));
-
-        previousTouchX = pointer.clientX;
-        previousTouchY = pointer.clientY;
-        updateCameraPosition();
-      }
-
-      function onEnd() {
-        isDragging = false;
-      }
-
-      window.addEventListener('mousedown', onStart);
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onEnd);
-
-      window.addEventListener('touchstart', onStart, { passive: false });
-      window.addEventListener('touchmove', onMove, { passive: false });
-      window.addEventListener('touchend', onEnd);
-
-      // النقر لاختيار المنتج
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-
-      function onClick(e) {
-        const pointer = e.changedTouches ? e.changedTouches[0] : e;
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((pointer.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((pointer.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(items);
-
-        if (intersects.length > 0) {
-          const itemData = intersects[0].parent.userData;
-          document.getElementById('cardTitle').innerText = itemData.name;
-          document.getElementById('cardDesc').innerText = itemData.desc;
+            const led = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), i === 1 ? ledOrangeMat : ledGreenMat);
+            led.position.set(-2.72, 1.1 - (i * 0.4), -0.2);
+            sidePanel.add(led);
         }
-      }
+        shelfGroup.add(sidePanel);
 
-      window.addEventListener('click', onClick);
+        // 3. الأرفف الذكية المزودة بحساسات الوزن (Weight Sensors / Load Cells)
+        const createSmartShelfLevel = (y) => {
+            const group = new THREE.Group();
+            
+            // لوح الرف الرئيسي
+            const board = new THREE.Mesh(new THREE.BoxGeometry(4.7, 0.12, 1.7), shelfPlateMat);
+            group.add(board);
 
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+            // حساسات الوزن الأربعة زوايا (Load Cell Sensors)
+            const sensorGeom = new THREE.BoxGeometry(0.35, 0.06, 0.35);
+            const s1 = new THREE.Mesh(sensorGeom, sensorMetalMat); s1.position.set(-1.8, 0.09, 0.4);
+            const s2 = new THREE.Mesh(sensorGeom, sensorMetalMat); s2.position.set(1.8, 0.09, 0.4);
+            const s3 = new THREE.Mesh(sensorGeom, sensorMetalMat); s3.position.set(-1.8, 0.09, -0.4);
+            const s4 = new THREE.Mesh(sensorGeom, sensorMetalMat); s4.position.set(1.8, 0.09, -0.4);
+            group.add(s1, s2, s3, s4);
 
-      function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-      }
-      animate();
-    };
-  </script>
+            // حساس مستوى بصري ضوئي على الجانب الداخلي
+            const optSensor = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.1, 16), ledGreenMat);
+            optSensor.rotation.z = Math.PI / 2;
+            optSensor.position.set(-2.3, 0.25, 0.2);
+            group.add(optSensor);
+
+            group.position.y = y;
+            return group;
+        };
+
+        shelfGroup.add(createSmartShelfLevel(1.1));
+        shelfGroup.add(createSmartShelfLevel(-1.1));
+
+        // 4. المنتجات المرتبة على الأرفف
+        // الرف العلوي: علب زجاجية بغطاء ذهبي
+        const createJar = (x, color) => {
+            const group = new THREE.Group();
+            const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.75, 24), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, transparent: true, opacity: 0.85 }));
+            const fill = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.6, 24), new THREE.MeshStandardMaterial({ color: color, roughness: 0.6 }));
+            fill.position.y = -0.05;
+            const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.14, 24), goldCapMat);
+            cap.position.y = 0.42;
+            group.add(glass, fill, cap);
+            group.position.set(x, 1.62, 0.1);
+            return group;
+        };
+
+        shelfGroup.add(createJar(-1.5, 0x8b4513)); // كمون
+        shelfGroup.add(createJar(-0.5, 0xb22222)); // بابريكا
+        shelfGroup.add(createJar(0.5, 0xf5f5dc));  // دقيق
+        shelfGroup.add(createJar(1.5, 0xe0e0e0));  // سكر
+
+        // الرف الأوسط: السيروم، التونر، البودرة، وأحمر الشفاه
+        const createSerum = (x, color, capCol) => {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.85, 24), new THREE.MeshStandardMaterial({ color: color, roughness: 0.1 }));
+            const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.28, 24), new THREE.MeshStandardMaterial({ color: capCol }));
+            cap.position.y = 0.52;
+            group.add(body, cap);
+            group.position.set(x, -0.45, 0.1);
+            return group;
+        };
+
+        shelfGroup.add(createSerum(-1.4, 0xd2691e, 0xffffff));
+        shelfGroup.add(createSerum(-0.5, 0x87ceeb, 0xcbb282));
+
+        const powder = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.32, 32), new THREE.MeshStandardMaterial({ color: 0x1a1e22, roughness: 0.3 }));
+        powder.position.set(0.4, -0.8, 0.1);
+        shelfGroup.add(powder);
+
+        const lipstick = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.65, 24), new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.2 }));
+        lipstick.position.set(1.4, -0.65, 0.1);
+        shelfGroup.add(lipstick);
+
+        // الرف السفلي: عبوات الشامبو والبلسم
+        const createBottle = (x, color, capCol) => {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.2, 24), new THREE.MeshStandardMaterial({ color: color, roughness: 0.2 }));
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.18, 0.22), new THREE.MeshStandardMaterial({ color: capCol }));
+            cap.position.y = 0.68;
+            group.add(body, cap);
+            group.position.set(x, -2.6, 0.1);
+            return group;
+        };
+
+        shelfGroup.add(createBottle(-0.9, 0xfafafa, 0x3a4045));
+        shelfGroup.add(createBottle(0.9, 0xd4a373, 0x6e757a));
+
+        scene.add(shelfGroup);
+
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            shelfGroup.rotation.y += 0.003;
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
 </body>
 </html>
